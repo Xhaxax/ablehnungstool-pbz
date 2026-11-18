@@ -1,0 +1,10 @@
+{
+  "name": "tmc-ablehnungstool",
+  "version": "1.0.0",
+  "private": true,
+  "description": "TMC-Ablehnungstool der pbz GmbH: Oberfläche (app/) und Cloud-Schnittstelle (api/)",
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "@neondatabase/serverless": "^0.10.4"
+  }
+}
