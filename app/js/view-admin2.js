@@ -224,7 +224,7 @@
           <div class="toolbar" style="margin-top:16px">
             ${S.supportsFs ? `<button class="btn ${S.mode === 'fs' ? 'btn-secondary' : 'btn-primary'}" data-switch="fs">${S.mode === 'fs' ? 'Anderen Ordner wählen' : 'Ordner auf dem Laufwerk wählen'}</button>` : ''}${S.cloudAvail && S.mode !== 'cloud' ? `<button class="btn btn-primary" data-switch="cloud">Zur Cloud-Datenbank wechseln</button>` : ''}${S.mode === 'cloud' ? `<button class="btn btn-secondary" id="d-logout">Abmelden</button>` : ''}
             <button class="btn btn-secondary" id="d-backup">${TA.icons.download || ''} Sicherung herunterladen (JSON)</button>
-            ${S.mode === 'fs' ? '<button class="btn btn-ghost" id="d-sync">Jetzt abgleichen</button>' : ''}
+            ${S.mode !== 'local' ? '<button class="btn btn-ghost" id="d-sync">Jetzt abgleichen</button>' : ''}
           </div>
           <p class="small muted">Die Daten liegen als einzelne Dateien im Datenordner (eine Datei je Ablehnung). Sichert die IT den Ordner mit, ist keine weitere Sicherung nötig.</p>
           ${darf && alt ? `<hr style="border:0;border-top:1px solid var(--line);margin:16px 0"><button class="btn btn-danger btn-sm" id="d-delalt">Alle Altdaten entfernen (${alt})</button>
