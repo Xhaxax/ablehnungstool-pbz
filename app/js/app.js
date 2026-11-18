@@ -42,9 +42,9 @@
   const TITLES = { a: 'Ablehnung', blatt: 'Gesprächsblatt', einstellungen: 'Einstellungen' };
   app.navCollapsed = () => document.documentElement.classList.contains('nav-zu');
   function syncState() {
-    if (S.mode !== 'fs') return { cls: 'warn', text: 'Nur in diesem Browser', title: 'Daten liegen nur in diesem Browser – nicht für die Teamarbeit.' };
-    if (S.syncError) return { cls: 'off', text: 'Ordner nicht erreichbar', title: S.syncError };
-    return { cls: 'ok', text: 'Aktuell · ' + (S.lastSync ? TA.fmtTime(S.lastSync) : '–'), title: 'Datenordner ' + S.folderName() + ' – klicken zum Aktualisieren' };
+    if (S.mode === 'local') return { cls: 'warn', text: 'Nur in diesem Browser', title: 'Daten liegen nur in diesem Browser – nicht für die Teamarbeit.' };
+    if (S.syncError) return { cls: 'off', text: S.mode === 'cloud' ? 'Cloud nicht erreichbar' : 'Ordner nicht erreichbar', title: S.syncError };
+    return { cls: 'ok', text: 'Aktuell · ' + (S.lastSync ? TA.fmtTime(S.lastSync) : '–'), title: (S.mode === 'cloud' ? 'Cloud-Datenbank' : 'Datenordner ' + S.folderName()) + ' – klicken zum Aktualisieren' };
   }
   app.refreshNav = () => renderNav(app.current ? (app.current.name === 'a' ? 'liste' : app.current.name) : 'uebersicht');
   function renderNav(route) {
