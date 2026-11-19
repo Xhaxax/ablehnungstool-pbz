@@ -35,6 +35,22 @@
     const mon = A.monthly({ ...flt, von: '' }, 12);
     const monMax = Math.max(1, ...mon.map((m) => m.n));
     const heat = A.heat(rows, f.heat);
+    const externRows = rows.filter((r) => A.isExtern(r.hk));
+    const extTotal = A.sum(externRows);
+    const ext = A.top(externRows, (r) => r.fa || '', 10).map(([id, n]) => ({ id, n, label: A.faName(id) || 'ohne Fehlerart' }));
+    const ablBew = A.ablehnungen({ ...flt, status: 'bewertet' });
+    const mitRows = new Set(rows.map((r) => r.a.id));
+    const ohneZ = ablBew.filter((a) => !mitRows.has(a.id));
+    const nUnb = ohneZ.filter((a) => (a.punkte || []).length && a.punkte.every((p) => p.berechtigt === 'nein')).length;
+    const nLeer = ohneZ.filter((a) => !(a.punkte || []).length).length;
+    const nRest = ohneZ.length - nUnb - nLeer;
+    const perAbl = new Map(); rows.forEach((r) => perAbl.set(r.a.id, (perAbl.get(r.a.id) || 0) + r._w));
+    const grund = (a) => ((a.punkte || []).length ? (a.punkte.every((p) => p.berechtigt === 'nein') ? 'alle Punkte nicht berechtigt' : 'durch Filter ausgeschlossen') : 'ohne Fehlerpunkte');
+    const bewList = [...ablBew].sort((a, b) => (b.bewertetAm || '').localeCompare(a.bewertetAm || ''));
+    const notice = ohneZ.length ? `<div class="notice" style="margin-top:16px"><b>${ohneZ.length} bewertete Ablehnung${ohneZ.length === 1 ? '' : 'en'} ${ohneZ.length === 1 ? 'taucht' : 'tauchen'} in den Diagrammen nicht auf.</b> ${[nUnb ? nUnb + '× sind alle Punkte als „nicht berechtigt“ markiert' : '', nLeer ? nLeer + '× ohne Fehlerpunkte' : '', nRest ? nRest + '× durch den Filter ausgeschlossen' : ''].filter(Boolean).join(', ')}. Die Zahl „Ablehnungen“ zählt Ablehnungen, die Diagramme zählen Fehlerpunkte.<div class="toolbar" style="margin-top:8px">${nUnb && !f.mitUnberechtigt ? '<button type="button" class="btn btn-secondary btn-sm" id="a-incl">Nicht berechtigte Punkte einbeziehen</button>' : ''}<button type="button" class="btn btn-ghost btn-sm" id="a-ohnez">Diese Ablehnungen ansehen</button></div></div>` : '';
+    const listCard = `<div class="card" style="margin-top:16px"><div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><h2 style="margin:0">Bewertete Ablehnungen <span class="muted" style="font-weight:400">· ${bewList.length}</span></h2><div class="spacer"></div>${bewList.length > 25 ? '<button type="button" class="btn btn-secondary btn-sm no-print" id="a-all">Alle in der Liste öffnen</button>' : ''}</div>
+      <p class="small muted" style="margin:4px 0 8px">Alle Ablehnungen im gewählten Zeitraum, deren Bewertung abgeschlossen ist – zuletzt bewertete zuerst. Klick öffnet die Ablehnung.</p>
+      ${bewList.length ? `<div class="tablewrap"><table class="ctr"><thead><tr><th>Abgelehnt</th><th>Standort</th><th>Cluster</th><th>Zeichner</th><th>Bewertet von</th><th class="num">Fehler in Auswertung</th></tr></thead><tbody>${bewList.slice(0, 25).map((a) => `<tr class="clickrow" data-href="#/a/${esc(a.id)}" tabindex="0"><td class="num">${TA.fmtDate(a.datumAblehnung)}</td><td><span class="mono">${esc(a.standortId || '–')}</span> <span class="small muted">${esc(a.standortName || '')}</span></td><td class="small">${esc(a.cluster || '')}</td><td>${esc(a.zeichner || '')}</td><td class="small">${esc(a.bewertetVon || '')}${a.bewertetAm ? ` <span class="muted">· ${TA.fmtDate(a.bewertetAm)}</span>` : ''}</td><td class="num">${perAbl.has(a.id) ? TA.fmtNum(perAbl.get(a.id)) : `<span class="badge b-alt" title="${esc(grund(a))}">nicht gezählt</span>`}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted small">Noch keine abgeschlossene Bewertung im gewählten Zeitraum.</p>'}</div>`;
     const versch = [['ja', 'durch uns verschuldet'], ['teilweise', 'teilweise verschuldet'], ['nein', 'nicht durch uns verschuldet']]
       .map(([v, l]) => ({ v, label: l, n: A.sum(rows.filter((r) => r.p.verschuldet === v)), s: v === 'nein' }));
     const cl = A.top(rows, (r) => r.a.cluster || '').map(([v, n]) => ({ v, n, label: v || 'ohne Cluster' }));
@@ -53,7 +69,7 @@
       ins.push({ lvl: d > 0 ? 'bad' : d < 0 ? 'ok' : 'info', icon: d > 0 ? 'alert' : 'check', t: d > 0 ? `Fehler steigen: ${nCur} in den letzten 90 Tagen (davor ${nPrev})` : d < 0 ? `Fehler sinken: ${nCur} in den letzten 90 Tagen (davor ${nPrev})` : `Fehlerzahl unverändert bei ${nCur}`, s: 'Vergleich: letzte 90 Tage gegen die 90 Tage davor', rows: cur, label: 'Letzte 90 Tage' });
     }
     if (fa.length && total) ins.push({ lvl: 'info', icon: 'tag', t: `„${fa[0].label}“ ist die häufigste Fehlerart`, s: `${fa[0].n}× – ${Math.round((fa[0].n / total) * 100)} % aller Fehler im Zeitraum`, rows: rows.filter((x) => x.fa === fa[0].id), label: fa[0].label });
-    const zc = A.top(rows, (r) => r.zeichner || '').filter(([n]) => n);
+    const zc = A.top(rows.filter((r) => !A.isExtern(r.hk)), (r) => r.zeichner || '').filter(([n]) => n);
     if (zc.length > 2) {
       const avg = zc.reduce((s, x) => s + x[1], 0) / zc.length;
       if (zc[0][1] >= avg * 1.5 && zc[0][1] >= 5) ins.push({ lvl: 'warn', icon: 'users', t: `${zc[0][0]} hat ${TA.fmtNum(zc[0][1] / avg, 1)}× so viele Fehler wie der Durchschnitt`, s: `${zc[0][1]} Fehler, Durchschnitt je Zeichner ${TA.fmtNum(avg, 1)}`, rows: rows.filter((x) => x.zeichner === zc[0][0]), label: zc[0][0] });
@@ -88,6 +104,7 @@
       ${sel('f-zeichner', 'zeichner', 'Zeichner')}${sel('f-qs', 'qs', 'QS')}${sel('f-cluster', 'cluster', 'Cluster')}${sel('f-plan', 'planvariante', 'Planvariante')}
       <label class="small"><input type="checkbox" id="f-unb"${f.mitUnberechtigt ? ' checked' : ''}> Nicht berechtigte Punkte einbeziehen</label>
     </div></div>
+    ${notice}
     ${!rows.length ? `<div class="card empty"><b>Keine bewerteten Fehler im gewählten Zeitraum</b>In die Auswertung kommen nur Ablehnungen, deren Bewertung abgeschlossen ist.<br><a class="btn btn-secondary" href="#/liste">Offene Ablehnungen ansehen</a></div>` : `
     <div class="grid g4">
       <div class="card kpi"><div class="lbl">Ablehnungen</div><div class="val">${k.ablehnungen}</div><div class="cmp">${k.wiederholungen} davon wiederholt am selben Standort</div></div>
@@ -105,7 +122,7 @@
         <div class="seg flat no-print" role="group" aria-label="Heatmap nach"><button data-heat="zeichner" aria-pressed="${f.heat !== 'qs'}">Zeichner</button><button data-heat="qs" aria-pressed="${f.heat === 'qs'}">QS</button></div></div>
       ${heat.people.length ? `<div style="overflow:auto"><table class="heat" style="margin-top:12px"><thead><tr><th class="rowh">${f.heat === 'qs' ? 'QS' : 'Zeichner'}</th>${heat.hks.map((h) => `<th>${esc(h.name)}</th>`).join('')}<th>Summe</th></tr></thead><tbody>
       ${heat.people.map((p) => `<tr><th class="rowh">${esc(p)}</th>${heat.hks.map((h) => { const v = heat.get(p, h.id); return `<td class="h${A.level(v, heat.max)}${v ? ' h-click' : ''}" ${v ? `data-hp="${esc(p)}" data-hh="${h.id}" tabindex="0" role="button" aria-label="${esc(p)}, ${esc(h.name)}: ${v}"` : ''}>${v}</td>`; }).join('')}<td class="num"><b>${heat.hks.reduce((s, h) => s + heat.get(p, h.id), 0)}</b></td></tr>`).join('')}
-      </tbody></table></div><div class="legend">wenig <span class="h0"></span><span class="h1"></span><span class="h2"></span><span class="h3"></span><span class="h4"></span> viel · Klick auf eine Zelle öffnet die Ablehnungen</div>` : '<p class="muted small">Keine Zuordnung vorhanden.</p>'}
+      </tbody></table></div><div class="legend">wenig <span class="h0"></span><span class="h1"></span><span class="h2"></span><span class="h3"></span><span class="h4"></span> viel · Klick auf eine Zelle öffnet die Ablehnungen</div><p class="small muted" style="margin:6px 0 0">Externe Fehler (Kunde, Auftraggeber, Prüfer) zählen hier nicht mit, sie stehen in der Karte „Externe Fehler“.</p>` : '<p class="muted small">Keine Zuordnung vorhanden.</p>'}
     </div>
     <div class="grid g2" style="margin-top:16px">
       <div class="card"><h2>Ablehnungen pro Monat</h2><div class="cols">${mon.map((m, i) => `<div class="c${i === mon.length - 1 ? ' cur' : ''}" data-mon="${m.key}" title="${esc(m.label)}: ${m.n}" role="button" tabindex="0"><b>${m.n}</b><i style="height:${(m.n / monMax) * 120}px"></i><span>${esc(m.label.split(' ')[0])}</span></div>`).join('')}</div><p class="small muted" style="margin:8px 0 0">Letzte 12 Monate, aktueller Monat in Gold. Filter außer Zeitraum gelten.</p></div>
@@ -124,8 +141,12 @@
     </div>
     <div class="grid g2" style="margin-top:16px">
       <div class="card"><h2>Nach Prüfer (TMC-MiNu)</h2>${bars(pm, total, 'pm')}</div>
-      <div class="card"><h2>Fehler je Zeichner</h2>${bars(zc.slice(0, 8).map(([v, n]) => ({ v, n, label: v })), total, 'zc')}</div>
-    </div>`}`;
+      <div class="card"><h2>Fehler je Zeichner</h2>${bars(zc.slice(0, 8).map(([v, n]) => ({ v, n, label: v })), total, 'zc')}<p class="small muted" style="margin:4px 0 0">Ohne externe Fehler.</p></div>
+    </div>
+    <div class="card" style="margin-top:16px"><h2>Externe Fehler</h2>
+      <p class="small muted" style="margin:0 0 8px">Fehler, die auf Kunden, Auftraggeber oder Prüfer zurückgehen. Sie werden keinem Zeichner angerechnet und lösen keine Empfehlung für Zeichner aus.</p>
+      ${ext.length ? `<div class="val" style="font-size:24px;font-weight:700;margin-bottom:8px">${TA.fmtNum(extTotal)} <span class="small muted" style="font-weight:400">externe Fehler im Zeitraum</span></div>${bars(ext, extTotal, 'ext')}` : '<p class="muted small">Im gewählten Zeitraum keine externen Fehler.</p>'}
+    </div>`}${listCard}`;
 
     const upd = () => { setF(f); auswertung(app.freshView()); };
     app.filterPanel(el);
@@ -136,6 +157,10 @@
       upd();
     });
     const handle = (t) => {
+      const hr = t.closest('[data-href]'); if (hr) { app.go(hr.dataset.href); return; }
+      if (t.closest('#a-incl')) { f.mitUnberechtigt = true; upd(); return; }
+      if (t.closest('#a-ohnez')) { app.openList({ ids: ohneZ.map((a) => a.id), label: 'Nicht in den Diagrammen' }); return; }
+      if (t.closest('#a-all')) { app.openList({ ids: bewList.map((a) => a.id), label: 'Bewertete Ablehnungen' }); return; }
       const hb = t.closest('[data-heat]'); if (hb) { f.heat = hb.dataset.heat; upd(); return; }
       const insEl = t.closest('[data-ins]');
       if (insEl) { const x = ins[+insEl.dataset.ins]; if (x && x.rows && x.rows.length) drill(x.rows, x.label); else TA.toast('Für diese Auffälligkeit gibt es keine Liste.'); return; }
@@ -143,8 +168,8 @@
       if (row) {
         const i = +row.dataset.i, act = row.dataset.act;
         const zlist = zc.slice(0, 8).map(([v, n]) => ({ v, n, label: v }));
-        const src = { hk, fa, v: versch, cl, pl, sw, st, pm, zc: zlist }[act][i];
-        const r = rows.filter((x) => act === 'hk' ? x.hk === src.id : act === 'fa' ? x.fa === src.id : act === 'v' ? x.p.verschuldet === src.v : act === 'cl' ? (x.a.cluster || '') === src.v : act === 'sw' ? (x.p.schwere || '') === src.v : act === 'st' ? (x.a.standortId || '') === src.v : act === 'pm' ? (x.a.prueferMinu || '') === src.v : act === 'zc' ? x.zeichner === src.v : (x.a.planvariante || '') === src.v);
+        const src = { hk, fa, v: versch, cl, pl, sw, st, pm, zc: zlist, ext }[act][i];
+        const r = rows.filter((x) => act === 'ext' ? (A.isExtern(x.hk) && x.fa === src.id) : act === 'hk' ? x.hk === src.id : act === 'fa' ? x.fa === src.id : act === 'v' ? x.p.verschuldet === src.v : act === 'cl' ? (x.a.cluster || '') === src.v : act === 'sw' ? (x.p.schwere || '') === src.v : act === 'st' ? (x.a.standortId || '') === src.v : act === 'pm' ? (x.a.prueferMinu || '') === src.v : act === 'zc' ? (x.zeichner === src.v && !A.isExtern(x.hk)) : (x.a.planvariante || '') === src.v);
         drill(r, src.label); return;
       }
       const c = t.closest('[data-hp]');
