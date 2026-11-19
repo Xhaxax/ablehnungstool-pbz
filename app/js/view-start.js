@@ -181,6 +181,7 @@
       <button type="button" class="btn btn-secondary" id="l-xlsx">${TA.icons.download} Excel-Export</button></div>
     <div class="toolbar">
       <input class="input search" id="l-q" type="search" placeholder="Standort, Projekt-Nr., Zeichner, Fehlertext …" aria-label="Suchen" value="${esc(f.q)}">
+      <div class="seg flat" id="l-seg" role="group" aria-label="Bearbeitungsstand">${[['offen', 'Offen', all.filter((a) => a.status !== 'bewertet').length], ['bewertet', 'Bewertet', all.filter((a) => a.status === 'bewertet').length], ['', 'Alle', all.length]].map(([v, l, n]) => `<button type="button" data-qs="${v}" aria-pressed="${(f.status === 'importiert' || f.status === 'bewertung' ? 'offen' : f.status) === v}">${l} <span class="muted">${n}</span></button>`).join('')}</div>
       <button type="button" class="btn btn-secondary filter-toggle" aria-expanded="false" aria-controls="l-panel">${TA.icons.sliders}<span>Filter</span><span class="fbadge" hidden></span></button>
     </div>
     <div class="filter-panel" id="l-panel" hidden>
@@ -199,7 +200,8 @@
 
     const upd = () => { save(); pageSize = 50; draw(); };
     el.querySelector('#l-q').addEventListener('input', TA.debounce((e) => { f.q = e.target.value; upd(); }, 200));
-    el.querySelectorAll('[data-st]').forEach((b) => (b.onclick = () => { f.status = b.dataset.st; el.querySelectorAll('[data-st]').forEach((x) => x.setAttribute('aria-pressed', x === b)); upd(); }));
+    el.querySelectorAll('[data-qs]').forEach((b) => (b.onclick = () => { f.status = b.dataset.qs; el.querySelectorAll('[data-qs]').forEach((x) => x.setAttribute('aria-pressed', x === b)); el.querySelectorAll('[data-st]').forEach((x) => x.setAttribute('aria-pressed', x.dataset.st === f.status)); upd(); }));
+    el.querySelectorAll('[data-st]').forEach((b) => (b.onclick = () => { f.status = b.dataset.st; el.querySelectorAll('[data-st]').forEach((x) => x.setAttribute('aria-pressed', x === b)); el.querySelectorAll('[data-qs]').forEach((x) => x.setAttribute('aria-pressed', x.dataset.qs === (f.status === 'importiert' || f.status === 'bewertung' ? 'offen' : f.status))); upd(); }));
     [['l-z', 'zeichner'], ['l-c', 'cluster'], ['l-p', 'plan'], ['l-t', 'zeitraum']].forEach(([id, k]) => (el.querySelector('#' + id).onchange = (e) => { f[k] = e.target.value; upd(); }));
     el.querySelector('#l-w').onchange = (e) => { f.wdh = e.target.checked; upd(); };
     el.addEventListener('click', (e) => {
