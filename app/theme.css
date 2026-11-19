@@ -73,6 +73,13 @@ a:hover{color:var(--brand-600)}
 .side-user .avatar{width:36px;height:36px;background:var(--brand-900);color:#fff;background-image:none;font-size:12.5px}
 .side-user .st{border:2px solid #fff;width:12px;height:12px}
 .side-user .chev{color:var(--text-3)}
+.side-user,.side-user:hover{cursor:default;background:transparent}
+.side-user .up-t{display:flex;flex-direction:column;min-width:0;line-height:1.25}
+.side-user .up-t b{font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.side-user .up-t small{font-size:11.5px;font-weight:500;color:var(--text-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.side-user .st{cursor:pointer}
+html.nav-zu .side-user .up-t{display:none}
+#l-seg button .muted{margin-left:4px;font-weight:500}
 /* eigener Einklapp-Button entfällt: kleiner Griff an der Kante */
 .side-toggle{display:none}
 .side-edge{position:absolute;top:calc(var(--top-h) - 12px);right:-13px;z-index:35;width:26px;height:26px;display:grid;place-items:center;padding:0;border-radius:50%;border:1px solid var(--line-strong);background:#fff;color:var(--text-2);cursor:pointer;transition:background-color 120ms,color 120ms}
