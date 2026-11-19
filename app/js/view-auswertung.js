@@ -45,17 +45,9 @@
     const unbPm = A.top(unbRows, (r) => r.a.prueferMinu || '', 8).map(([v, n]) => ({ v, n, label: v || 'unbekannt', s: !v }));
 
     const ablBew = A.ablehnungen({ ...flt, status: 'bewertet' });
-    const mitRows = new Set(rows.map((r) => r.a.id));
-    const ohneZ = ablBew.filter((a) => !mitRows.has(a.id));
-    const nUnb = ohneZ.filter((a) => (a.punkte || []).length && a.punkte.every((p) => p.berechtigt === 'nein')).length;
-    const nLeer = ohneZ.filter((a) => !(a.punkte || []).length).length;
-    const nRest = ohneZ.length - nUnb - nLeer;
     const perAbl = new Map(); rows.forEach((r) => perAbl.set(r.a.id, (perAbl.get(r.a.id) || 0) + r._w));
     const unbPerAbl = new Map(); unbRows.forEach((r) => unbPerAbl.set(r.a.id, (unbPerAbl.get(r.a.id) || 0) + r._w));
     const bewList = [...ablBew].sort((a, b) => (b.bewertetAm || '').localeCompare(a.bewertetAm || ''));
-
-    const notice = ohneZ.length ? `<div class="notice" style="margin-bottom:16px"><b>${ohneZ.length} bewertete Ablehnung${ohneZ.length === 1 ? '' : 'en'} ${ohneZ.length === 1 ? 'ist' : 'sind'} in den Fehler-Diagrammen nicht enthalten:</b> ${[nUnb ? nUnb + '× sind alle Punkte nicht berechtigt' : '', nLeer ? nLeer + '× ohne Fehlerpunkte' : '', nRest ? nRest + '× vom Filter ausgeschlossen' : ''].filter(Boolean).join(', ')}.
-      <div class="toolbar" style="margin:8px 0 0">${nUnb ? '<button type="button" class="btn btn-secondary btn-sm" data-tab="ausnahmen">Nicht berechtigte Fehler ansehen</button>' : ''}<button type="button" class="btn btn-ghost btn-sm" id="a-ohnez">Diese Ablehnungen ansehen</button></div></div>` : '';
 
     const punktTabelle = (rs) => (rs.length ? `<div class="tablewrap" style="margin-top:12px"><table class="ctr"><thead><tr><th>Abgelehnt</th><th>Standort</th><th>Fehlerart</th><th>Zeichner</th><th>Prüfer</th></tr></thead><tbody>${[...rs].sort((a, b) => (b.a.datumAblehnung || '').localeCompare(a.a.datumAblehnung || '')).slice(0, 8).map((r) => `<tr class="clickrow" data-href="#/a/${esc(r.a.id)}" tabindex="0"><td class="num">${TA.fmtDate(r.a.datumAblehnung)}</td><td><span class="mono">${esc(r.a.standortId || '–')}</span></td><td>${esc(A.faName(r.fa) || A.hkName(r.hk) || '–')}</td><td>${esc(r.zeichner || '')}</td><td class="small">${esc(r.a.prueferMinu || '')}</td></tr>`).join('')}</tbody></table></div>${rs.length > 8 ? `<p class="small muted" style="margin:6px 0 0">Die neuesten 8 von ${rs.length} Punkten. „Alle ansehen“ öffnet die Ablehnungen.</p>` : ''}` : '');
 
@@ -106,12 +98,12 @@
     if (!tabs.some((t) => t[0] === f.tab)) f.tab = 'uebersicht';
     const pane = (id, title, html) => `<section class="tabpane" data-pane="${id}"${f.tab === id ? '' : ' hidden'} aria-label="${esc(title)}"><h2 class="print-only pane-h">${esc(title)}</h2>${html}</section>`;
 
-    const pUeber = `${notice}${!rows.length ? leer : `
+    const pUeber = `${!rows.length ? leer : `
       <div class="grid g4">
-        <div class="card kpi"><div class="lbl">Ablehnungen</div><div class="val">${k.ablehnungen}</div><div class="cmp">${k.wiederholungen} davon wiederholt am selben Standort</div></div>
+        <button type="button" class="card kpi kpi-link" data-tab="liste" title="Alle bewerteten Ablehnungen ansehen"><div class="lbl">Ablehnungen</div><div class="val">${k.ablehnungen}</div><div class="cmp">${k.wiederholungen} davon wiederholt am selben Standort · <u>Liste öffnen</u></div></button>
         <div class="card kpi"><div class="lbl">Fehler je Ablehnung</div><div class="val">${TA.fmtNum(k.jeAbl, 1)}</div><div class="cmp">${TA.fmtNum(k.fehler)} berechtigte Fehler, ${TA.fmtNum(k.major)} Major</div></div>
         <div class="card kpi"><div class="lbl">Durch uns verschuldet</div><div class="val">${TA.fmtPct(k.verschuldet)}</div><div class="cmp">„teilweise“ zählt zur Hälfte</div></div>
-        <div class="card kpi"><div class="lbl">Nicht berechtigt (TMC)</div><div class="val">${TA.fmtPct(k.unberechtigt)}</div><div class="cmp">${TA.fmtNum(unbTotal)} Punkte, getrennt ausgewiesen</div></div>
+        <button type="button" class="card kpi kpi-link" data-tab="ausnahmen" title="Nicht berechtigte Fehler ansehen"><div class="lbl">Nicht berechtigt (TMC)</div><div class="val">${TA.fmtPct(k.unberechtigt)}</div><div class="cmp">${TA.fmtNum(unbTotal)} Punkte, getrennt ausgewiesen · <u>ansehen</u></div></button>
       </div>
       ${ins.length ? `<div class="card" style="margin-top:16px"><h2>Auffälligkeiten</h2><div class="insights">${ins.map((x, i) => `<button type="button" class="ins ${x.lvl}" data-ins="${i}"><span class="ins-ico">${TA.icons[x.icon]}</span><span><b>${esc(x.t)}</b><small>${esc(x.s)}</small></span></button>`).join('')}</div></div>` : ''}
       <div class="grid g2" style="margin-top:16px">
@@ -120,7 +112,7 @@
       </div>
       <div class="grid g2" style="margin-top:16px">
         <div class="card"><h2>Ablehnungen pro Monat</h2><div class="cols">${mon.map((m, i) => `<div class="c${i === mon.length - 1 ? ' cur' : ''}" data-mon="${m.key}" title="${esc(m.label)}: ${m.n}" role="button" tabindex="0"><b>${m.n}</b><i style="height:${(m.n / monMax) * 120}px"></i><span>${esc(m.label.split(' ')[0])}</span></div>`).join('')}</div><p class="small muted" style="margin:8px 0 0">Letzte 12 Monate, aktueller Monat in Gold. Filter außer Zeitraum gelten.</p></div>
-        <div class="card"><h2>Verschuldung</h2>${bars(versch, total, 'v')}</div>
+        <div style="display:grid;gap:16px;align-content:start"><div class="card"><h2>Verschuldung</h2>${bars(versch, total, 'v')}</div><div class="card"><h2>Schwere der Fehler</h2>${bars(sw, total, 'sw')}</div></div>
       </div>
       <div class="card" style="margin-top:16px"><h2>Fehler pro Monat nach Hauptkategorie</h2>
         <div class="stack-cols">${mkeys.map((key, i) => `<div class="sc" data-mon="${key}" role="button" tabindex="0" title="${esc(mon[i].label)}: ${mTot[i]}"><b>${mTot[i]}</b><div class="st">${[...legend].map(([id]) => { const v = (byM[key] || {})[id] || 0; return v ? `<i style="height:${(v / mMax) * 130}px;background:${colorOf(id)}" title="${esc((legend.find((l) => l[0] === id) || [])[1] || '')}: ${v}"></i>` : ''; }).join('')}</div><span>${esc(mon[i].label.split(' ')[0])}</span></div>`).join('')}</div>
@@ -133,9 +125,6 @@
       </div>
       <div class="grid g2" style="margin-top:16px">
         <div class="card"><h2>Nach Planvariante</h2>${bars(pl, total, 'pl')}</div>
-        <div class="card"><h2>Schwere der Fehler</h2>${bars(sw, total, 'sw')}</div>
-      </div>
-      <div class="grid g2" style="margin-top:16px">
         <div class="card"><h2>Nach Prüfer (TMC-MiNu)</h2>${bars(pm, total, 'pm')}</div>
       </div>`;
 
@@ -195,7 +184,6 @@
       const tb = t.closest('[data-tab]'); if (tb) { showTab(tb.dataset.tab); return; }
       const hr = t.closest('[data-href]'); if (hr) { app.go(hr.dataset.href); return; }
       const al = t.closest('[data-all]'); if (al) { if (al.dataset.all === 'unb') drill(unbRows, 'Nicht berechtigte Fehler'); else drill(externRows, 'Externe Fehler'); return; }
-      if (t.closest('#a-ohnez')) { app.openList({ ids: ohneZ.map((a) => a.id), label: 'Nicht in den Fehler-Diagrammen' }); return; }
       if (t.closest('#a-all')) { app.openList({ ids: bewList.map((a) => a.id), label: 'Bewertete Ablehnungen' }); return; }
       const hb = t.closest('[data-heat]'); if (hb) { f.heat = hb.dataset.heat; upd(); return; }
       const insEl = t.closest('[data-ins]');
