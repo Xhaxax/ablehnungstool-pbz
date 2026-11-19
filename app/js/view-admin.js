@@ -8,15 +8,16 @@
   function einstellungen(el, params) {
     const tab = (params && params[0]) || 'benutzer';
     const darf = app.can('verwalten');
+    const darfTab = tab === 'kategorien' ? app.can('kategorien') : darf;
     el.innerHTML = `
       <div class="pagehead"><div><div class="overline">Einstellungen</div><h1>Verwaltung</h1>
-        <p class="muted small" style="margin:4px 0 0">Datenordner: <b>${esc(S.folderName())}</b>${darf ? '' : ' · Nur Admins können hier ändern.'}</p></div></div>
+        <p class="muted small" style="margin:4px 0 0">Datenordner: <b>${esc(S.folderName())}</b>${darfTab ? '' : tab === 'kategorien' ? ' · Nur Admin und Projektleitung können hier ändern.' : ' · Nur Admins können hier ändern.'}</p></div></div>
       <div class="tabs" role="tablist">${TABS.map(([k, l]) => `<button role="tab" aria-selected="${k === tab}" data-tab="${k}">${l}</button>`).join('')}</div>
       <div id="tabbody"></div>`;
     el.querySelectorAll('[data-tab]').forEach((b) => b.addEventListener('click', () => app.go('#/einstellungen/' + b.dataset.tab)));
     const body = el.querySelector('#tabbody');
     const fn = { benutzer, listen, regeln, kategorien: app.admin.kategorien, daten: app.admin.daten, uebersicht: app.admin.uebersicht }[tab];
-    if (fn) fn(body, darf); else body.innerHTML = '<div class="empty">Unbekannter Bereich.</div>';
+    if (fn) fn(body, darfTab); else body.innerHTML = '<div class="empty">Unbekannter Bereich.</div>';
   }
 
   /* ---------- Benutzer ---------- */
