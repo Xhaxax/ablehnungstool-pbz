@@ -80,6 +80,9 @@ a:hover{color:var(--brand-600)}
 .side-user .st{cursor:pointer}
 html.nav-zu .side-user .up-t{display:none}
 #l-seg button .muted{margin-left:4px;font-weight:500}
+.tabs button .muted{font-weight:500;margin-left:4px}
+.tabpane[hidden]{display:none}
+@media print{.tabpane[hidden]{display:block!important}.tabpane{margin-bottom:16px}.pane-h{margin:16px 0 8px}}
 /* eigener Einklapp-Button entfällt: kleiner Griff an der Kante */
 .side-toggle{display:none}
 .side-edge{position:absolute;top:calc(var(--top-h) - 12px);right:-13px;z-index:35;width:26px;height:26px;display:grid;place-items:center;padding:0;border-radius:50%;border:1px solid var(--line-strong);background:#fff;color:var(--text-2);cursor:pointer;transition:background-color 120ms,color 120ms}
