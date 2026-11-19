@@ -80,11 +80,12 @@
       const v = await TA.modal(h ? 'Hauptkategorie bearbeiten' : 'Hauptkategorie anlegen', `
         <div class="field"><label for="hk-n">Name <span class="req">· Pflichtfeld</span></label><input id="hk-n" class="input" value="${esc(h ? h.name : '')}" placeholder="z. B. Einreichungsfehler"></div>
         <div class="field" style="margin-top:12px"><label for="hk-d">Beschreibung</label><input id="hk-d" class="input" value="${esc(h ? h.beschreibung || '' : '')}" placeholder="z. B. Unterlagen fehlen oder falsch eingereicht"></div>
+        <label class="small" style="display:flex;gap:8px;margin-top:12px"><input type="checkbox" id="hk-x" ${h && (h.extern === true || (h.extern === undefined && h.id === 'hk-ext')) ? 'checked' : ''}> Externer Fehler – nicht dem Zeichner zurechenbar (Kunde, Auftraggeber, Prüfer); zählt nicht in der Zeichner-Heatmap</label>
         ${h ? `<label class="small" style="display:flex;gap:8px;margin-top:12px"><input type="checkbox" id="hk-a" ${h.aktiv !== false ? 'checked' : ''}> aktiv (wird bei der Bewertung angeboten)</label>` : ''}`,
         [{ label: 'Abbrechen', value: null, cls: 'btn-ghost' }, { label: h ? 'Speichern' : 'Anlegen', value: true, cls: 'btn-primary' }],
         { onOpen: (m) => m.querySelector('#hk-n').focus(),
           validate: (m) => { if (!m.querySelector('#hk-n').value.trim()) { TA.toast('Bitte einen Namen eingeben.', { error: true }); return false; } return true; },
-          collect: (m) => ({ name: m.querySelector('#hk-n').value.trim(), beschreibung: m.querySelector('#hk-d').value.trim(), aktiv: m.querySelector('#hk-a') ? m.querySelector('#hk-a').checked : true }) });
+          collect: (m) => ({ name: m.querySelector('#hk-n').value.trim(), beschreibung: m.querySelector('#hk-d').value.trim(), aktiv: m.querySelector('#hk-a') ? m.querySelector('#hk-a').checked : true, extern: m.querySelector('#hk-x').checked }) });
       if (!v) return;
       let id = h && h.id;
       await S.saveCfg((cc) => {
