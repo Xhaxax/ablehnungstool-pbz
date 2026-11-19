@@ -89,6 +89,17 @@
     el.removeAttribute('aria-haspopup'); el.style.cursor = 'default'; el.tabIndex = -1;
     el.innerHTML = `<span class="avatar">${TA.esc(TA.initials(u.name))}<i class="st ${st.cls}" title="${TA.esc(st.text)}"></i></span><span class="lbl up-t"><b>${TA.esc(u.name)}</b><small>${TA.esc(roleText(u))}</small></span>`;
     el.onclick = (e) => { if (e.target.closest('.st')) S.sync(true); };
+    fitRole();
+    if (!roleObs && window.ResizeObserver) { roleObs = new ResizeObserver(() => fitRole()); roleObs.observe(el); }
+  }
+  let roleObs = null;
+  const ROLES_SHORT = { admin: 'Admin', rm: 'RM', pl: 'PL', qs: 'QS', tl: 'TL' };
+  const roleShort = (u) => (u.roles || []).map((r) => ROLES_SHORT[r] || ROLES[r]).join(' · ') || 'ohne Rolle';
+  function fitRole() {
+    const el = document.getElementById('userchip'); const u = app.user();
+    const sm = el && el.querySelector('small'); if (!sm || !u) return;
+    sm.removeAttribute('title'); sm.textContent = roleText(u);
+    if (sm.clientWidth && sm.scrollWidth > sm.clientWidth + 1) { sm.textContent = roleShort(u); sm.title = roleText(u); }
   }
 
   /* ---------- Benutzer waehlen / ersten Admin anlegen ---------- */
