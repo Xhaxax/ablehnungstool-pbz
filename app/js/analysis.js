@@ -7,7 +7,8 @@
   A.faName = (id) => { const f = TA.store.cfg.fehlerarten.find((x) => x.id === id); return f ? f.name : ''; };
   A.faById = (id) => TA.store.cfg.fehlerarten.find((x) => x.id === id);
 
-  A.isZaehlbar = (p) => p.berechtigt !== 'nein' && p.verschuldet !== 'nein';
+  A.isExtern = (hkId) => { const h = TA.store.cfg.hauptkategorien.find((x) => x.id === hkId); return !!h && (h.extern === true || (h.extern === undefined && h.id === 'hk-ext')); };
+  A.isZaehlbar = (p) => p.berechtigt !== 'nein' && p.verschuldet !== 'nein' && !A.isExtern(p.hk);
 
   A.dauer = null;
   A.ablehnungen = (f = {}) => [...TA.store.abl.values()].filter((a) => {
@@ -64,7 +65,8 @@
   };
 
   A.heat = (rows, by) => {
-    const hks = TA.store.cfg.hauptkategorien.filter((h) => h.aktiv !== false);
+    const hks = TA.store.cfg.hauptkategorien.filter((h) => h.aktiv !== false && !A.isExtern(h.id));
+    rows = rows.filter((r) => !A.isExtern(r.hk));
     const people = A.top(rows, (r) => r[by]).map((x) => x[0]);
     const m = new Map();
     rows.forEach((r) => { if (!r[by]) return; const k = r[by] + '|' + r.hk; m.set(k, (m.get(k) || 0) + r._w); });
