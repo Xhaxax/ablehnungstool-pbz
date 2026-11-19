@@ -12,7 +12,8 @@
     importieren: ['admin', 'rm', 'pl', 'qs', 'tl'],
     bewerten: ['admin', 'pl', 'qs', 'tl'],
     stammdaten: ['admin', 'rm', 'pl', 'qs', 'tl'],
-    massnahmen: ['admin', 'rm', 'tl'],
+    massnahmen: ['admin', 'rm', 'pl', 'tl'],
+    kategorien: ['admin', 'pl'],
     verwalten: ['admin'],
     loeschen: ['admin']
   };
@@ -20,7 +21,7 @@
   app.RIGHT_LABELS = {
     importieren: 'Mails importieren und Ablehnungen anlegen', stammdaten: 'Projektdaten, Zeichner und QS eintragen',
     bewerten: 'Fehler kategorisieren und Bewertung abschließen', massnahmen: 'Maßnahmen dokumentieren (Gespräche, Schulungen)',
-    verwalten: 'Kategorien, Benutzer, Listen und Regeln verwalten', loeschen: 'Ablehnungen löschen'
+    kategorien: 'Kategorien und Fehlerarten verwalten', verwalten: 'Benutzer, Listen und Empfehlungsregeln verwalten', loeschen: 'Ablehnungen löschen'
   };
 
   app.user = () => {
@@ -68,17 +69,26 @@
       localStorage.setItem('ablehnungstool-nav', z ? 'zu' : 'auf');
       renderNav(app.current ? (app.current.name === 'a' ? 'liste' : app.current.name) : route);
     };
-    document.getElementById('tb-right').innerHTML = `${S.mode === 'local' ? '<a class="btn btn-secondary btn-sm" href="#/einstellungen/daten" title="Daten liegen nur in diesem Browser">Speicherort wählen</a>' : ''}<a class="tb-icon${route === 'einstellungen' ? ' on' : ''}" href="#/einstellungen" title="Einstellungen" aria-label="Einstellungen"${route === 'einstellungen' ? ' aria-current="page"' : ''}>${TA.icons.gear}</a>`;
+    document.getElementById('tb-right').innerHTML = `${S.mode === 'local' ? '<a class="btn btn-secondary btn-sm" href="#/einstellungen/daten" title="Daten liegen nur in diesem Browser">Speicherort wählen</a>' : ''}<button type="button" class="btn btn-ghost btn-sm" id="tb-logout" title="Abmelden und neu anmelden">Abmelden</button><a class="tb-icon${route === 'einstellungen' ? ' on' : ''}" href="#/einstellungen" title="Einstellungen" aria-label="Einstellungen"${route === 'einstellungen' ? ' aria-current="page"' : ''}>${TA.icons.gear}</a>`;
+    const lg = document.getElementById('tb-logout'); if (lg) lg.onclick = () => app.logout();
     renderUser();
   }
+  app.logout = async () => {
+    const ok = await TA.confirm('Abmelden?', 'Danach musst du dich neu anmelden. Ungespeicherte Eingaben gehen verloren.', 'Abmelden', false);
+    if (!ok) return;
+    localStorage.removeItem('ablehnungstool-user');
+    if (S.mode === 'cloud') { try { await S.logout(); } catch (e) { /* Sitzung ist ohnehin weg */ } }
+    app.dirty = false; location.reload();
+  };
   function renderUser() {
     const u = app.user(); const el = document.getElementById('userchip');
     if (!u) { el.hidden = true; return; }
     el.hidden = false;
     const st = syncState();
-    el.title = `${u.name} – Benutzer wechseln`;
-    el.innerHTML = `<span class="avatar">${TA.esc(TA.initials(u.name))}<i class="st ${st.cls}" title="${TA.esc(st.text)}"></i></span><span class="lbl">${TA.esc(u.name)}</span><span class="lbl chev">${TA.icons.chevron}</span>`;
-    el.onclick = () => app.pickUser(true);
+    el.title = `${u.name} – ${roleText(u)}`;
+    el.removeAttribute('aria-haspopup'); el.style.cursor = 'default'; el.tabIndex = -1;
+    el.innerHTML = `<span class="avatar">${TA.esc(TA.initials(u.name))}<i class="st ${st.cls}" title="${TA.esc(st.text)}"></i></span><span class="lbl up-t"><b>${TA.esc(u.name)}</b><small>${TA.esc(roleText(u))}</small></span>`;
+    el.onclick = (e) => { if (e.target.closest('.st')) S.sync(true); };
   }
 
   /* ---------- Benutzer waehlen / ersten Admin anlegen ---------- */
@@ -152,8 +162,9 @@
     renderUser();
     app.route();
     if (!app._timer) {
-      app._timer = setInterval(() => { if (!document.hidden) S.sync(false); }, 45000);
+      app._timer = setInterval(() => { if (!document.hidden) S.sync(false); }, 20000);
       window.addEventListener('focus', () => S.sync(false));
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) S.sync(false); });
     }
   }
 
